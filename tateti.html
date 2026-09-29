@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ta Te Ti</title>
+<style>
+:root{--bg:#f6ecd9;--ink:#4a2f1d;--muted:#8a6d52;--card:#fffaf0;--line:#dcc7a3;--x:#a8442a;--o:#6b7a2f;--hi:#f5d98a;--sel:#f1dfbd;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#241a12;--ink:#f3e6d0;--muted:#b9a084;--card:#33251a;--line:#5a4430;--x:#e08a63;--o:#a9b96a;--hi:#6b5420;--sel:#4a3726}}
+:root[data-theme="dark"]{--bg:#241a12;--ink:#f3e6d0;--muted:#b9a084;--card:#33251a;--line:#5a4430;--x:#e08a63;--o:#a9b96a;--hi:#6b5420;--sel:#4a3726}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Montserrat",system-ui,sans-serif;display:flex;justify-content:center;padding:24px 16px}
+main{width:100%;max-width:400px;text-align:center}
+h1{margin:0 0 4px;font-size:28px;font-weight:800}
+#estado{min-height:48px;margin:8px 0 16px;color:var(--muted);font-size:15px;line-height:1.4}
+#estado b{color:var(--ink)}
+#tablero{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--line);padding:8px;border-radius:14px}
+.c{aspect-ratio:1;background:var(--card);border:0;border-radius:8px;font:800 clamp(40px,14vw,60px) "Montserrat",system-ui,sans-serif;cursor:pointer;color:var(--ink)}
+.c:focus-visible{outline:3px solid var(--x);outline-offset:2px}
+.c.X{color:var(--x)}.c.O{color:var(--o)}
+.c.sel{background:var(--sel)}.c.dest{background:var(--sel);box-shadow:inset 0 0 0 2px var(--x)}
+.c.win{background:var(--hi)}
+.marcador{display:flex;justify-content:center;gap:24px;margin:16px 0;font-weight:700}
+.marcador .X{color:var(--x)}.marcador .O{color:var(--o)}
+button.r{background:var(--ink);color:var(--bg);border:0;border-radius:8px;padding:10px 20px;font:600 15px "Montserrat",system-ui,sans-serif;cursor:pointer}
+.bt{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}button.r.s{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
+.reglas{margin-top:24px;padding:16px 18px;background:var(--card);border-radius:12px;text-align:left;box-shadow:inset 0 0 0 1px var(--line)}
+.reglas h2{margin:0 0 8px;font-size:17px}.reglas h3{margin:12px 0 4px;font-size:14px}
+.reglas ul{margin:0;padding-left:20px;font-size:14px;line-height:1.5;color:var(--muted)}
+p.n{color:var(--muted);font-size:13px;margin-top:16px;line-height:1.4}
+</style>
+</head>
+<body>
+<main>
+<h1>Ta Te Ti</h1>
+<div id="estado" aria-live="polite"></div>
+<div id="tablero"></div>
+<div class="marcador"><span class="X">X: <span id="px">0</span>/10</span><span class="O">O: <span id="po">0</span>/10</span></div>
+<div class="bt"><button class="r" id="reiniciar">Nueva partida</button><button class="r s" id="todo">Reiniciar puntos</button></div>
+<section class="reglas">
+<h2>Reglas del juego</h2>
+<ul>
+<li>2 jugadores: X y O.</li>
+<li>Cada jugador tiene 3 fichas iguales.</li>
+<li>Se turnan para colocar una ficha en una casilla vacía.</li>
+<li>Cuando ambos colocaron sus 3 fichas, pueden moverlas a la casilla vacía más cercana.</li>
+</ul>
+<h3>Objetivo</h3>
+<ul><li>Alinear 3 fichas iguales en vertical, horizontal o diagonal.</li></ul>
+<h3>Puntos</h3>
+<ul><li>Cada partida ganada suma 1 punto. Gana el juego quien llegue primero a 10.</li></ul>
+</section>
+</main>
+<script>
+const L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let b,turno,colocadas,sel,fin,win,campeon=null,pts={X:0,O:0};
+const tab=document.getElementById('tablero'),est=document.getElementById('estado');
+const cel=[...Array(9)].map((_,i)=>{const e=document.createElement('button');e.className='c';e.onclick=()=>jugar(i);tab.appendChild(e);return e});
+const ady=(a,c)=>a!==c&&Math.abs(Math.floor(a/3)-Math.floor(c/3))<=1&&Math.abs(a%3-c%3)<=1;
+function nueva(){if(campeon){pts={X:0,O:0};campeon=null}b=Array(9).fill('');turno='X';colocadas={X:0,O:0};sel=null;fin=false;win=[];dibujar()}
+function jugar(i){
+ if(fin)return;
+ if(colocadas[turno]<3||colocadas.X+colocadas.O<6){
+  if(colocadas[turno]>=3||b[i])return;
+  b[i]=turno;colocadas[turno]++;cerrar();return}
+ if(b[i]===turno){sel=i;dibujar();return}
+ if(sel!==null&&!b[i]&&ady(sel,i)){b[i]=turno;b[sel]='';sel=null;cerrar()}
+}
+function cerrar(){
+ const l=L.find(l=>l.every(k=>b[k]===turno));
+ if(l){fin=true;win=l;pts[turno]++;if(pts[turno]>=10)campeon=turno}else turno=turno==='X'?'O':'X';
+ dibujar()}
+function dibujar(){
+ const fase1=colocadas.X+colocadas.O<6;
+ cel.forEach((e,i)=>{e.textContent=b[i];e.className='c '+b[i]+(win.includes(i)?' win':'')+(sel===i?' sel':'')+(!fin&&sel!==null&&!b[i]&&ady(sel,i)?' dest':'');
+  e.setAttribute('aria-label','Casilla '+(i+1)+(b[i]?': '+b[i]:': vacía'))});
+ document.getElementById('px').textContent=pts.X;document.getElementById('po').textContent=pts.O;
+ est.innerHTML=campeon?`<b>¡${campeon} llegó a 10 puntos y ganó el juego!</b> Tocá «Nueva partida» para empezar de cero.`:fin?`<b>¡Ganó ${turno}!</b> Tres en línea.`:fase1?`Turno de <b>${turno}</b>: colocá una ficha (${3-colocadas[turno]} restantes).`:sel===null?`Turno de <b>${turno}</b>: elegí una ficha para mover.`:`Turno de <b>${turno}</b>: tocá una casilla vacía contigua.`}
+document.getElementById('reiniciar').onclick=nueva;document.getElementById('todo').onclick=()=>{campeon=null;pts={X:0,O:0};nueva()};nueva();
+</script>
+</body>
+</html>
